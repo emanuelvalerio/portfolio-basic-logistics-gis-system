@@ -5,7 +5,21 @@ import { MapContainer, TileLayer, GeoJSON, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-export default function Map({ geoData, neighborhoodData, streetsData }: { geoData: any; neighborhoodData?: any; streetsData?: any }) {
+type BaseMap = 'dark' | 'osm';
+
+export default function Map({
+  baseMap = 'dark',
+  geoData,
+  neighborhoodData,
+  streetsData,
+  fireData,
+}: {
+  baseMap?: BaseMap;
+  geoData: any;
+  neighborhoodData?: any;
+  streetsData?: any;
+  fireData?: any;
+}) {
   useEffect(() => {
     // Ensures Leaflet only swaps the icons once the browser is fully loaded,
     // avoiding crashes during startup.
@@ -79,19 +93,49 @@ export default function Map({ geoData, neighborhoodData, streetsData }: { geoDat
     }
   };
 
+  const onEachFire = (feature: any, layer: L.Layer) => {
+    if (feature.properties) {
+      const p = feature.properties;
+      const area = p.area_km2 != null ? Number(p.area_km2).toFixed(1) : 'N/A';
+      const when = p.occurred_at ? new Date(p.occurred_at).toLocaleString('pt-BR') : 'N/A';
+      const detections = p.qtd_deteccoes ?? 'N/A';
+      layer.bindPopup(`
+        <div style="font-family: Arial, sans-serif; min-width: 210px;">
+          <h4 style="margin: 0 0 6px; color: #B3320F;">🔥 Evento de incêndio</h4>
+          <p style="margin: 3px 0; font-size: 13px;"><strong>Área:</strong> ${area} km²</p>
+          <p style="margin: 3px 0; font-size: 13px;"><strong>Última detecção:</strong> ${when}</p>
+          <p style="margin: 3px 0; font-size: 13px;"><strong>Nº de detecções:</strong> ${detections}</p>
+          <p style="margin: 3px 0; font-size: 12px; color: #888;"><strong>ID:</strong> ${p.external_id || 'N/A'}</p>
+        </div>
+      `);
+    }
+  };
+
   return (
-      <MapContainer
-        center={[-15.7939, -47.8828]}
-        zoom={5}
-        zoomControl={false}
-        style={{ height: '100%', width: '100%' }}
-      >
-      {/* Dark base tile — operational look, matches the floating glass panels */}
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; OpenStreetMap contributors'
-        maxZoom={19}
-      />
+    <MapContainer
+      center={[-9.645500, -35.734500]}
+      zoom={10}
+      zoomControl={false}
+      style={{ height: '100%', width: '100%' }}
+    >
+      {/* Base tile — switchable between dark (CARTO) and light (OpenStreetMap).
+          The `key` forces Leaflet to swap the tile layer when the choice changes. */}
+      {baseMap === 'osm' ? (
+        <TileLayer
+          key="osm"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution="&copy; OpenStreetMap contributors"
+          maxZoom={19}
+        />
+      ) : (
+        <TileLayer
+          key="dark"
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution="&copy; OpenStreetMap &copy; CARTO"
+          subdomains="abcd"
+          maxZoom={19}
+        />
+      )}
 
       {/* Zoom moved to bottom-left so it doesn't collide with the brand pill */}
       <ZoomControl position="bottomleft" />
@@ -113,6 +157,16 @@ export default function Map({ geoData, neighborhoodData, streetsData }: { geoDat
           data={streetsData}
           onEachFeature={onEachStreet}
           style={{ color: '#8c94a0', weight: 1, fillOpacity: 0 }}
+        />
+      )}
+
+      {/* SIPAM fire events (polygons) — ember/red */}
+      {fireData && (
+        <GeoJSON
+          key={`fire-${JSON.stringify(fireData).substring(0, 20)}`}
+          data={fireData}
+          onEachFeature={onEachFire}
+          style={{ color: '#FF3B2F', weight: 1.5, fillColor: '#FF6A2B', fillOpacity: 0.35 }}
         />
       )}
 

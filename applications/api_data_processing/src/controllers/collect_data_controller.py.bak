@@ -7,9 +7,6 @@ from src.services.collect_data_service import IngestPostalAgenciesService, Query
 from src.services.collect_data_service import IngestNeighborhoodsService, QueryNeighborhoodsService
 from src.services.collect_data_service import IngestAlagoasStreetsService, QueryAlagoasStreetsService
 
-# Fire events (SIPAM) — reads the normalized geo_events table
-from domain.services.ingestion.geo_event_query_service import QueryGeoEventsService
-
 # Router replacing the 'Namespace' from flask_restx
 router = APIRouter(prefix="/collect", tags=["Data Collection"])
 
@@ -39,9 +36,9 @@ class CollectDataController:
             # Example of how you would evoke the service:
             # service = CollectDataService()
             # result = service.collect_raw_data(source=payload.source_name, wkt=payload.wkt_geometry)
-
+            
             return {
-                "status": "success",
+                "status": "success", 
                 "message": "Geographical data collected and queued successfully.",
                 "received_data": payload.model_dump() # Converts the Pydantic object to dict
             }
@@ -54,14 +51,14 @@ class CollectDataController:
 
     async def ingest_postal_agencies(self):
         """
-        Instantiates the service that reads the local dataset 'correios_al.geojson.json'
+        Instantiates the service that reads the local dataset 'correios_al.geojson.json' 
         and performs an UPSERT of all agencies into the PostalAgencies table in PostGIS.
         """
         try:
             # Instantiating the class and executing its functionality
             ingest_service = IngestPostalAgenciesService()
             result = ingest_service.execute()
-
+            
             return result
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
@@ -96,7 +93,7 @@ class CollectDataController:
 
     async def ingest_alagoas_streets(self):
         """
-        Instantiates the service that reads 'alagoas-streets.geojson.json'
+        Instantiates the service that reads 'alagoas-streets.geojson.json' 
         and inserts the street networks into PostGIS.
         """
         try:
@@ -115,18 +112,6 @@ class CollectDataController:
         except Exception as e:
             return {"type": "FeatureCollection", "features": []}
 
-    async def get_fire_events_from_db(self):
-        """
-        Fetches SIPAM fire events from the normalized `geo_events` table
-        and returns them as a GeoJSON FeatureCollection.
-        """
-        try:
-            query_service = QueryGeoEventsService(event_type="incendio")
-            return query_service.execute()
-        except Exception as e:
-            # Non-destructive: empty FeatureCollection on failure.
-            return {"type": "FeatureCollection", "features": []}
-
 # ---------------------------------------------------------
 # Router Mappings
 # ---------------------------------------------------------
@@ -135,57 +120,50 @@ controller_instance = CollectDataController()
 
 # Binding the instance methods to the FastAPI router
 router.add_api_route(
-    "/",
-    controller_instance.collect_raw_data,
-    methods=["POST"],
+    "/", 
+    controller_instance.collect_raw_data, 
+    methods=["POST"], 
     summary="Collect raw geographical data"
 )
 
 router.add_api_route(
-    "/ingest-postal-agencies-file",
-    controller_instance.ingest_postal_agencies,
-    methods=["POST"],
+    "/ingest-postal-agencies-file", 
+    controller_instance.ingest_postal_agencies, 
+    methods=["POST"], 
     summary="Ingest Postal Agencies GeoJSON"
 )
 
 router.add_api_route(
-    "/get-postal-agencies-from-db",
-    controller_instance.get_postal_agencies_from_db,
-    methods=["GET"],
+    "/get-postal-agencies-from-db", 
+    controller_instance.get_postal_agencies_from_db, 
+    methods=["GET"], 
     summary="Get Postal Agencies as GeoJSON"
 )
 
 router.add_api_route(
-    "/ingest-neighborhoods-file",
-    controller_instance.ingest_neighborhoods,
-    methods=["POST"],
+    "/ingest-neighborhoods-file", 
+    controller_instance.ingest_neighborhoods, 
+    methods=["POST"], 
     summary="Ingest Neighborhoods GeoJSON (MultiPolygon)"
 )
 
 router.add_api_route(
-    "/get-neighborhoods-from-db",
-    controller_instance.get_neighborhoods,
-    methods=["GET"],
+    "/get-neighborhoods-from-db", 
+    controller_instance.get_neighborhoods, 
+    methods=["GET"], 
     summary="Get Neighborhoods as GeoJSON"
 )
 
 router.add_api_route(
-    "/ingest-alagoas-streets-file",
-    controller_instance.ingest_alagoas_streets,
-    methods=["POST"],
+    "/ingest-alagoas-streets-file", 
+    controller_instance.ingest_alagoas_streets, 
+    methods=["POST"], 
     summary="Ingest Alagoas Streets GeoJSON"
 )
 
 router.add_api_route(
-    "/get-alagoas-streets-from-db",
-    controller_instance.get_alagoas_streets_from_db,
-    methods=["GET"],
+    "/get-alagoas-streets-from-db", 
+    controller_instance.get_alagoas_streets_from_db, 
+    methods=["GET"], 
     summary="Get Alagoas Streets as GeoJSON"
-)
-
-router.add_api_route(
-    "/get-fire-events-from-db",
-    controller_instance.get_fire_events_from_db,
-    methods=["GET"],
-    summary="Get SIPAM fire events as GeoJSON",
 )

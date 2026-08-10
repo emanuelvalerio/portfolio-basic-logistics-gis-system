@@ -20,7 +20,9 @@ type GeoData = {
     }>;
 };
 
-// Dynamic import pointing to the same folder (./Map). Kept exactly as before.
+type BaseMap = 'dark' | 'osm';
+
+// Dynamic import pointing to the same folder (./Map).
 const DynamicMap = dynamic(() => import('./Map'), {
     ssr: false,
     loading: () => <div className="loader">Carregando motor geográfico…</div>,
@@ -31,9 +33,13 @@ export default function Home() {
     const [geoData, setGeoData] = useState<GeoData | null>(null);
     const [neighborhoodData, setNeighborhoodData] = useState<GeoData | null>(null);
     const [streetsData, setStreetsData] = useState<GeoData | null>(null);
+    const [fireData, setFireData] = useState<GeoData | null>(null);
+
+    // Selected base map ('dark' = CARTO dark, 'osm' = OpenStreetMap standard)
+    const [baseMap, setBaseMap] = useState<BaseMap>('dark');
 
     // Layer visibility — toggles just pass the data through or null to hide it.
-    const [show, setShow] = useState({ agencias: true, bairros: true, ruas: true });
+    const [show, setShow] = useState({ agencias: true, bairros: true, ruas: true, incendios: true });
 
     const fetchMapData = () => {
         fetch(`${API_BASE_URL}/api/v1/collect/get-postal-agencies-from-db`)
@@ -50,6 +56,12 @@ export default function Home() {
             .then((res) => { if (!res.ok) throw new Error('fail'); return res.json(); })
             .then((data) => { if (data?.features?.length) setStreetsData(data); })
             .catch((err) => console.error('Streets:', err));
+
+        // SIPAM fire events (geo_events table)
+        fetch(`${API_BASE_URL}/api/v1/collect/get-fire-events-from-db`)
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => { if (data?.features?.length) setFireData(data); })
+            .catch((err) => console.error('Fire events:', err));
     };
 
     useEffect(() => {
@@ -101,14 +113,18 @@ export default function Home() {
     const statusColor =
         apiStatus === 'Online' ? '#3FB950' : apiStatus === 'Offline' ? '#F85149' : '#D29922';
 
+    const fireCount = fireData?.features?.length ?? 0;
+
     return (
         <main className="console">
-            {/* Fullscreen map (requires the Map component to fill 100% — see note) */}
+            {/* Fullscreen map */}
             <div className="map-slot">
                 <DynamicMap
+                    baseMap={baseMap}
                     geoData={show.agencias ? geoData : null}
                     neighborhoodData={show.bairros ? neighborhoodData : null}
                     streetsData={show.ruas ? streetsData : null}
+                    fireData={show.incendios ? fireData : null}
                 />
             </div>
 
@@ -135,6 +151,12 @@ export default function Home() {
 
                 <button className="primary" onClick={handleIngest}>Carregar dados</button>
 
+                <div className="eyebrow" style={{ marginTop: 14 }}>Mapa base</div>
+                <div className="seg" role="group" aria-label="Mapa base">
+                    <button aria-pressed={baseMap === 'dark'} onClick={() => setBaseMap('dark')}>Escuro</button>
+                    <button aria-pressed={baseMap === 'osm'} onClick={() => setBaseMap('osm')}>Claro</button>
+                </div>
+
                 <div className="eyebrow" style={{ marginTop: 14 }}>Camadas</div>
                 <div className="layers">
                     <Toggle label="Agências" color="#FF6A2B" checked={show.agencias}
@@ -143,6 +165,8 @@ export default function Home() {
                         onChange={(v) => setShow((s) => ({ ...s, bairros: v }))} />
                     <Toggle label="Ruas (Alagoas)" color="#9AA3AB" checked={show.ruas}
                         onChange={(v) => setShow((s) => ({ ...s, ruas: v }))} />
+                    <Toggle label={`Incêndios (SIPAM)${fireCount ? ` · ${fireCount}` : ''}`} color="#FF3B2F" square
+                        checked={show.incendios} onChange={(v) => setShow((s) => ({ ...s, incendios: v }))} />
                 </div>
             </div>
 
@@ -194,6 +218,13 @@ export default function Home() {
         .primary:hover { filter: brightness(1.08); }
         .primary:focus-visible { outline: 2px solid #45C0C2; outline-offset: 2px; }
 
+        .seg { display: flex; gap: 4px; margin-top: 6px; padding: 3px; border-radius: 10px;
+               background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+        .seg button { flex: 1; border: 0; background: transparent; color: #9AA3AB; cursor: pointer;
+                      font-size: 11px; font-weight: 600; padding: 6px 0; border-radius: 7px; transition: .15s; }
+        .seg button[aria-pressed="true"] { background: #FF6A2B; color: #1a0d06; }
+        .seg button:focus-visible { outline: 2px solid #45C0C2; outline-offset: 2px; }
+
         .layers { margin-top: 2px; }
         .fab { bottom: 20px; right: 16px; width: 44px; height: 44px; display: grid; place-items: center;
                cursor: pointer; color: #F3F1EC; }
@@ -225,7 +256,7 @@ function Toggle({ label, color, square, checked, onChange }: {
                border-top: 1px solid rgba(255,255,255,0.10); cursor: pointer; }
         .row:first-child { border-top: 0; }
         .name { display: flex; align-items: center; gap: 9px; font-size: 13px; color: #F3F1EC; }
-        .swatch { width: 11px; height: 11px; }
+        .swatch { width: 11px; height: 11px; flex: none; }
         .switch { position: relative; width: 34px; height: 20px; flex: none; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .track { position: absolute; inset: 0; border-radius: 20px; background: rgba(255,255,255,0.14); transition: .18s; }
