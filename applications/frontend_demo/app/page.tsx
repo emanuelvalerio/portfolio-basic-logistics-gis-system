@@ -34,12 +34,15 @@ export default function Home() {
     const [neighborhoodData, setNeighborhoodData] = useState<GeoData | null>(null);
     const [streetsData, setStreetsData] = useState<GeoData | null>(null);
     const [fireData, setFireData] = useState<GeoData | null>(null);
+    const [deforestationData, setDeforestationData] = useState<GeoData | null>(null);
 
     // Selected base map ('dark' = CARTO dark, 'osm' = OpenStreetMap standard)
     const [baseMap, setBaseMap] = useState<BaseMap>('dark');
 
     // Layer visibility — toggles just pass the data through or null to hide it.
-    const [show, setShow] = useState({ agencias: true, bairros: true, ruas: true, incendios: true });
+    const [show, setShow] = useState({
+        agencias: true, bairros: true, ruas: true, incendios: true, desmatamento: true,
+    });
 
     const fetchMapData = () => {
         fetch(`${API_BASE_URL}/api/v1/collect/get-postal-agencies-from-db`)
@@ -57,11 +60,17 @@ export default function Home() {
             .then((data) => { if (data?.features?.length) setStreetsData(data); })
             .catch((err) => console.error('Streets:', err));
 
-        // SIPAM fire events (geo_events table)
+        // SIPAM fire events (geo_events table, event_type = 'incendio')
         fetch(`${API_BASE_URL}/api/v1/collect/get-fire-events-from-db`)
             .then((res) => (res.ok ? res.json() : null))
             .then((data) => { if (data?.features?.length) setFireData(data); })
             .catch((err) => console.error('Fire events:', err));
+
+        // MapBiomas deforestation alerts (geo_events table, event_type = 'desmatamento')
+        fetch(`${API_BASE_URL}/api/v1/collect/get-deforestation-events-from-db`)
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => { if (data?.features?.length) setDeforestationData(data); })
+            .catch((err) => console.error('Deforestation:', err));
     };
 
     useEffect(() => {
@@ -114,6 +123,7 @@ export default function Home() {
         apiStatus === 'Online' ? '#3FB950' : apiStatus === 'Offline' ? '#F85149' : '#D29922';
 
     const fireCount = fireData?.features?.length ?? 0;
+    const deforCount = deforestationData?.features?.length ?? 0;
 
     return (
         <main className="console">
@@ -125,6 +135,7 @@ export default function Home() {
                     neighborhoodData={show.bairros ? neighborhoodData : null}
                     streetsData={show.ruas ? streetsData : null}
                     fireData={show.incendios ? fireData : null}
+                    deforestationData={show.desmatamento ? deforestationData : null}
                 />
             </div>
 
@@ -167,6 +178,8 @@ export default function Home() {
                         onChange={(v) => setShow((s) => ({ ...s, ruas: v }))} />
                     <Toggle label={`Incêndios (SIPAM)${fireCount ? ` · ${fireCount}` : ''}`} color="#FF3B2F" square
                         checked={show.incendios} onChange={(v) => setShow((s) => ({ ...s, incendios: v }))} />
+                    <Toggle label={`Desmatamento (MapBiomas)${deforCount ? ` · ${deforCount}` : ''}`} color="#3FB950" square
+                        checked={show.desmatamento} onChange={(v) => setShow((s) => ({ ...s, desmatamento: v }))} />
                 </div>
             </div>
 

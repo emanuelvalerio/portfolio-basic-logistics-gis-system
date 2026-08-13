@@ -13,12 +13,14 @@ export default function Map({
   neighborhoodData,
   streetsData,
   fireData,
+  deforestationData,
 }: {
   baseMap?: BaseMap;
   geoData: any;
   neighborhoodData?: any;
   streetsData?: any;
   fireData?: any;
+  deforestationData?: any;
 }) {
   useEffect(() => {
     // Ensures Leaflet only swaps the icons once the browser is fully loaded,
@@ -111,6 +113,22 @@ export default function Map({
     }
   };
 
+  const onEachDeforestation = (feature: any, layer: L.Layer) => {
+    if (feature.properties) {
+      const p = feature.properties;
+      const area = p.areaHa != null ? Number(p.areaHa).toFixed(2) : 'N/A';
+      const when = p.detectedAt ? new Date(p.detectedAt).toLocaleDateString('pt-BR') : 'N/A';
+      layer.bindPopup(`
+        <div style="font-family: Arial, sans-serif; min-width: 210px;">
+          <h4 style="margin: 0 0 6px; color: #1B5E20;">🌳 Alerta de desmatamento</h4>
+          <p style="margin: 3px 0; font-size: 13px;"><strong>Área:</strong> ${area} ha</p>
+          <p style="margin: 3px 0; font-size: 13px;"><strong>Detectado em:</strong> ${when}</p>
+          <p style="margin: 3px 0; font-size: 12px; color: #888;"><strong>Alerta:</strong> ${p.external_id || 'N/A'}</p>
+        </div>
+      `);
+    }
+  };
+
   return (
     <MapContainer
       center={[-9.645500, -35.734500]}
@@ -157,6 +175,16 @@ export default function Map({
           data={streetsData}
           onEachFeature={onEachStreet}
           style={{ color: '#8c94a0', weight: 1, fillOpacity: 0 }}
+        />
+      )}
+
+      {/* MapBiomas deforestation alerts (polygons) — green */}
+      {deforestationData && (
+        <GeoJSON
+          key={`defor-${JSON.stringify(deforestationData).substring(0, 20)}`}
+          data={deforestationData}
+          onEachFeature={onEachDeforestation}
+          style={{ color: '#2E7D32', weight: 1, fillColor: '#3FB950', fillOpacity: 0.35 }}
         />
       )}
 

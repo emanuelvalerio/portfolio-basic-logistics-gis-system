@@ -127,6 +127,18 @@ class CollectDataController:
             # Non-destructive: empty FeatureCollection on failure.
             return {"type": "FeatureCollection", "features": []}
 
+    async def get_deforestation_events_from_db(self):
+        """
+        Fetches deforestation events from the normalized `geo_events` table
+        and returns them as a GeoJSON FeatureCollection.
+        """
+        try:
+            query_service = QueryGeoEventsService(event_type="desmatamento")
+            return query_service.execute()
+        except Exception as e:
+            # Non-destructive: empty FeatureCollection on failure.
+            return {"type": "FeatureCollection", "features": []}
+
 # ---------------------------------------------------------
 # Router Mappings
 # ---------------------------------------------------------
@@ -188,4 +200,11 @@ router.add_api_route(
     controller_instance.get_fire_events_from_db,
     methods=["GET"],
     summary="Get SIPAM fire events as GeoJSON",
+)
+
+router.add_api_route(
+    "/get-deforestation-events-from-db",
+    controller_instance.get_deforestation_events_from_db,
+    methods=["GET"],
+    summary="Get SIPAM deforestation events as GeoJSON",
 )

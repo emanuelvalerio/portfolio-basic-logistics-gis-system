@@ -2,13 +2,11 @@
 Sonda de descoberta do MapBiomas Alerta
 =======================================
 
-NÃO é o conector final — é investigação. Duas partes:
+Agora investiga os ARGUMENTOS que o campo 'alerts' aceita (paginação/filtro).
+A API se descreve: perguntamos o tipo 'Query' e, dentro dele, o campo 'alerts'
+e seus 'args'. É assim que achamos os nomes certos de limit/offset/data.
 
-  1) INTROSPECÇÃO: pergunta ao GraphQL QUAIS campos o tipo 'AlertData' tem.
-     (A API descreve a si mesma — é como pedir o "índice" do schema.)
-  2) AMOSTRA: pede 2 alertas com os campos simples que já sabemos existir.
-
-Rodar da raiz do repositório:
+Rodar da raiz:
     POSTGRES_HOST=localhost python3 -m domain.services.ingestion.mapbiomas_probe
 """
 
@@ -23,27 +21,16 @@ from domain.services.ingestion.mapbiomas_client import (
     MAPBIOMAS_GRAPHQL_URL,
 )
 
-# 1) Introspecção: lista os campos disponíveis no tipo AlertData.
-_INTROSPECT_QUERY = """
+# Pergunta: no tipo raiz 'Query', quais argumentos o campo 'alerts' aceita?
+_ARGS_QUERY = """
 query {
-  __type(name: "AlertData") {
+  __type(name: "Query") {
     fields {
       name
-      type { name kind ofType { name kind } }
-    }
-  }
-}
-"""
-
-# 2) Amostra só com os campos simples que provavelmente passaram.
-_SAMPLE_QUERY = """
-query {
-  alerts(limit: 2) {
-    collection {
-      id
-      alertCode
-      areaHa
-      detectedAt
+      args {
+        name
+        type { name kind ofType { name kind } }
+      }
     }
   }
 }
@@ -65,25 +52,23 @@ def main() -> None:
     load_dotenv()
     token = get_mapbiomas_token()
 
-    print("=" * 60)
-    print("CAMPOS DISPONÍVEIS NO TIPO 'AlertData':")
-    print("=" * 60)
-    introspection = _post(token, _INTROSPECT_QUERY)
-    fields = introspection.get("data", {}).get("__type", {}).get("fields")
-    if fields:
-        for f in fields:
-            t = f["type"]
-            type_name = t.get("name") or (t.get("ofType") or {}).get("name") or t.get("kind")
-            print(f"  - {f['name']:<28} ({type_name})")
-    else:
-        print(json.dumps(introspection, indent=2, ensure_ascii=False)[:1500])
+    result = _post(token, _ARGS_QUERY)
+    fields = result.get("data", {}).get("__type", {}).get("fields", []) or []
 
-    print()
-    print("=" * 60)
-    print("AMOSTRA (campos simples):")
-    print("=" * 60)
-    sample = _post(token, _SAMPLE_QUERY)
-    print(json.dumps(sample, indent=2, ensure_ascii=False)[:2000])
+    # Filtra só o campo 'alerts' e mostra seus argumentos.
+    for field in fields:
+        if field["name"] == "alerts":
+            print("=" * 55)
+            print("ARGUMENTOS ACEITOS PELO CAMPO 'alerts':")
+            print("=" * 55)
+            for arg in field.get("args", []):
+                t = arg["type"]
+                type_name = t.get("name") or (t.get("ofType") or {}).get("name") or t.get("kind")
+                print(f"  - {arg['name']:<24} ({type_name})")
+            return
+
+    print("Campo 'alerts' não encontrado. Resposta crua:")
+    print(json.dumps(result, indent=2, ensure_ascii=False)[:1500])
 
 
 if __name__ == "__main__":
