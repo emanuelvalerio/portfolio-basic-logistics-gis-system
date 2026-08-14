@@ -138,6 +138,21 @@ class CollectDataController:
         except Exception as e:
             # Non-destructive: empty FeatureCollection on failure.
             return {"type": "FeatureCollection", "features": []}
+    async def get_water_stations_from_db(self):
+        """Fetches SNIRH fluviometric stations (points) as GeoJSON."""
+        try:
+            query_service = QueryGeoEventsService(event_type="estacao_fluviometrica")
+            return query_service.execute()
+        except Exception as e:
+            return {"type": "FeatureCollection", "features": []}
+
+    async def get_hydrography_from_db(self):
+        """Fetches SNIRH hydrography (lines) as GeoJSON."""
+        try:
+            query_service = QueryGeoEventsService(event_type="hidrografia")
+            return query_service.execute()
+        except Exception as e:
+            return {"type": "FeatureCollection", "features": []}
 
 # ---------------------------------------------------------
 # Router Mappings
@@ -207,4 +222,17 @@ router.add_api_route(
     controller_instance.get_deforestation_events_from_db,
     methods=["GET"],
     summary="Get SIPAM deforestation events as GeoJSON",
+)
+router.add_api_route(
+    "/get-water-stations-from-db",
+    controller_instance.get_water_stations_from_db,
+    methods=["GET"],
+    summary="Get SNIRH fluviometric stations as GeoJSON",
+)
+
+router.add_api_route(
+    "/get-hydrography-from-db",
+    controller_instance.get_hydrography_from_db,
+    methods=["GET"],
+    summary="Get SNIRH hydrography as GeoJSON",
 )

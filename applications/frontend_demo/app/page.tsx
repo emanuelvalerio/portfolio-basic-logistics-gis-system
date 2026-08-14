@@ -139,19 +139,6 @@ export default function Home() {
                 />
             </div>
 
-            {/* Brand (top-left) */}
-            <div className="overlay glass brand">
-                <div className="mark">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#FF6A2B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 2C12 2 5 8 5 14a7 7 0 0 0 14 0c0-2-1-3.5-2-5-1.5 2-3 2-3 0 0-2 1-4-2-7Z" />
-                    </svg>
-                </div>
-                <div>
-                    <div className="title">MIRA · GIS</div>
-                    <div className="sub">Protótipo logístico</div>
-                </div>
-            </div>
-
             {/* Control panel (top-right) */}
             <div className="overlay glass panel">
                 <div className="eyebrow">Backend</div>

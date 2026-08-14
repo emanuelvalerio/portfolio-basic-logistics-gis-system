@@ -8,7 +8,7 @@ import 'leaflet/dist/leaflet.css';
 type BaseMap = 'dark' | 'osm';
 
 export default function Map({
-  baseMap = 'dark',
+  baseMap,
   geoData,
   neighborhoodData,
   streetsData,
@@ -103,7 +103,7 @@ export default function Map({
       const detections = p.qtd_deteccoes ?? 'N/A';
       layer.bindPopup(`
         <div style="font-family: Arial, sans-serif; min-width: 210px;">
-          <h4 style="margin: 0 0 6px; color: #B3320F;">🔥 Evento de incêndio</h4>
+          <h4 style="margin: 0 0 6px; color: #B3320F;">Evento de incêndio</h4>
           <p style="margin: 3px 0; font-size: 13px;"><strong>Área:</strong> ${area} km²</p>
           <p style="margin: 3px 0; font-size: 13px;"><strong>Última detecção:</strong> ${when}</p>
           <p style="margin: 3px 0; font-size: 13px;"><strong>Nº de detecções:</strong> ${detections}</p>
@@ -120,7 +120,7 @@ export default function Map({
       const when = p.detectedAt ? new Date(p.detectedAt).toLocaleDateString('pt-BR') : 'N/A';
       layer.bindPopup(`
         <div style="font-family: Arial, sans-serif; min-width: 210px;">
-          <h4 style="margin: 0 0 6px; color: #1B5E20;">🌳 Alerta de desmatamento</h4>
+          <h4 style="margin: 0 0 6px; color: #1B5E20;">Alerta de desmatamento</h4>
           <p style="margin: 3px 0; font-size: 13px;"><strong>Área:</strong> ${area} ha</p>
           <p style="margin: 3px 0; font-size: 13px;"><strong>Detectado em:</strong> ${when}</p>
           <p style="margin: 3px 0; font-size: 12px; color: #888;"><strong>Alerta:</strong> ${p.external_id || 'N/A'}</p>
@@ -131,8 +131,8 @@ export default function Map({
 
   return (
     <MapContainer
-      center={[-9.645500, -35.734500]}
-      zoom={10}
+      center={[-14.24, -51.93]}
+      zoom={4}
       zoomControl={false}
       style={{ height: '100%', width: '100%' }}
     >
